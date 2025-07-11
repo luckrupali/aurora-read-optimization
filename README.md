@@ -1,13 +1,15 @@
-# Aurora Read Optimization for Read-Heavy Applications
+# RDS + Aurora Optimization with Blue-Green Strategy
 
-This project showcases a real-world DevOps use case where an Amazon Aurora Cluster was configured for optimizing performance in a read-heavy application.
+This project documents a real-world production scenario where we optimized an Amazon RDS instance for cost and performance using blue-green deployment and later scaled reads using Aurora Reader endpoints.
 
 ---
 
 ## 🔧 Tools & Services Used
-- **Amazon Aurora Cluster**
+
 - **Amazon RDS (PostgreSQL/MySQL)**
-- **Reader & Writer Endpoints**
+- **Amazon Aurora Cluster**
+- **Blue-Green Deployment Strategy**
+- **Instance Type Optimization**
 - **AWS CloudWatch**
 - **Ubuntu Server**
 - **SQL Queries**
@@ -16,46 +18,66 @@ This project showcases a real-world DevOps use case where an Amazon Aurora Clust
 
 ## 🧠 Problem Statement
 
-Our application was read-heavy and faced performance issues as reads and writes were hitting the same RDS instance. Aurora was introduced with multiple read replicas to scale reads separately.
+The production RDS was experiencing:
+- Heavy read load during peak hours
+- Table locking and slow performance
+- High cost due to large instance running full time
 
 ---
 
 ## 🚀 Solution Overview
 
-1. Migrated the database to **Aurora Cluster**
-2. Set up **write operations** through the **RDS writer endpoint**
-3. Set up **read operations** through **Aurora reader endpoint**
-4. Refactored backend query logic (Node.js app) to use appropriate endpoints
-5. Monitored query load using **CloudWatch** and SQL logs
-6. Achieved ~25% cost reduction by tuning instance types and replicas
+### 🔹 Phase 1: Blue-Green Deployment with Dynamic Instance Types
+
+- Implemented a **blue-green deployment** where:
+  - "Green" ran during **off-peak hours** on smaller instances
+  - "Blue" ran during **peak hours** with high-performance instance
+- Automated switch based on load schedule
+- Result: ⚡ ~50% reduction in instance cost with no downtime
+
+### 🔹 Phase 2: Scaling Reads with Aurora
+
+- Migrated read-heavy workloads to **Aurora Reader Endpoint**
+- Continued using RDS as **primary write DB**
+- Updated backend to route reads/writes appropriately
+
+### 🔹 Phase 3: Monitoring & Stabilization
+
+- Used **CloudWatch** to monitor performance metrics and logs
+- Validated system stability over a sustained period
+- Reduced errors, improved load times, and optimized response
 
 ---
 
-## 📈 Architecture
+## 💡 Architecture Diagram
+  Client
+             |
+   ┌─────────┴──────────┐
+   |                    |
 
-Client
+   (Writes) (Reads)
+| |
+RDS Aurora Reader Endpoint
 |
-|-- Write --> RDS Writer Endpoint (Aurora Primary)
-|
-|-- Read --> Aurora Reader Endpoint (Read Replica)
+(Auto-switch Blue/Green for cost savings)
 
-## 📄 Example SQL Flow
+## 📄 Sample SQL
 
 ```sql
--- For write
-INSERT INTO orders (id, customer, amount) VALUES (...);
+-- Write to RDS
+INSERT INTO orders (id, item, amount) VALUES (101, 'item1', 250);
 
--- For read (directed to reader)
-SELECT * FROM orders WHERE customer_id = 'X';
+-- Read from Aurora
+SELECT * FROM orders WHERE item = 'item1';
 
 📊 Outcome
- 40–50% improvement in query response time
-~25% cost savings on RDS/Aurora instances
- Stable performance under high read loads
+✅ ~50% cost reduction on RDS using smart instance scaling
+✅ Improved system responsiveness by offloading reads to Aurora
+✅ No downtime due to blue-green approach
+✅ System stabilized through performance monitoring
 
 🧰 Folder Structure (coming soon)
-
-aurora-read-optimization/
+rds-aurora-optimization/
 ├── sql/
 │   └── example-read-write.sql
 ├── diagrams/
